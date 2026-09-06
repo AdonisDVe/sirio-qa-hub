@@ -1,0 +1,39 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+// 1. Diccionario de Datos (Campos)
+model FieldMetadata {
+  id            String   @id @default(uuid())
+  fieldName     String   @unique // Ej: "cedularif"
+  description   String   // Ej: "Identificador del cliente"
+  dataType      String   // Ej: "Alfanumérico", "Numérico"
+  isMandatory   Boolean  @default(true) 
+  businessValue String?  
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+// 2. Diccionario de Códigos de Respuesta y Errores (¡NUEVO!)
+model ResponseCodeMetadata {
+  id          String   @id @default(uuid())
+  code        String   @unique // Ej: "00", "01", "400", "500"
+  description String   // Ej: "Aprobado", "Cuenta inválida", "Error de conexión"
+  type        String   // Ej: "EXITO", "ERROR_NEGOCIO", "ERROR_SISTEMA"
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+// 3. Gestión de Ambientes
+model Environment {
+  id        String   @id @default(uuid())
+  name      String
+  variables String   // JSON string
+  createdAt DateTime @default(now())
+}
