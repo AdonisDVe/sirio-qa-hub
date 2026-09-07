@@ -360,6 +360,85 @@ export const generateFolderPDF = (folder: Folder, folderReqs: RequestItem[], fie
       doc.setFont('courier', 'normal');
       doc.setFontSize(8);
       doc.text(splitResp, 14, startY);
+      startY += (splitResp.length * 4) + 10;
+    }
+  });
+
+  // --- SECCIÓN FINAL: CÓDIGOS DE RESPUESTA Y MANEJO DE EXCEPCIONES ---
+  doc.addPage();
+  let finalY = drawPageHeader(doc, folder.name, exportOptions.clientName) + 5;
+
+  // 1. CÓDIGOS DE RESPUESTA (Standard HTTP Response Codes)
+  doc.setFillColor(ORANGE[0], ORANGE[1], ORANGE[2]);
+  doc.rect(14, finalY, pageWidth - 28, 8, 'F');
+  doc.setTextColor(255, 255, 255);
+  doc.setFontSize(11);
+  doc.setFont('helvetica', 'bold');
+  doc.text("1. CÓDIGOS DE RESPUESTA", 16, finalY + 6);
+  finalY += 12;
+
+  autoTable(doc, {
+    startY: finalY,
+    head: [
+      [
+        { content: 'Códigos', styles: { fillColor: [180, 180, 180], fontStyle: 'bold', halign: 'center' as const } },
+        { content: 'Respuesta', styles: { fillColor: [180, 180, 180], fontStyle: 'bold', halign: 'center' as const } }
+      ]
+    ],
+    body: [
+      [{ content: '1000', styles: { halign: 'center' as const } }, 'SUCCESS'],
+      [{ content: '1001', styles: { halign: 'center' as const } }, 'ERRORES DE VALIDACIÓN DEL SERVICIO'],
+      [{ content: '1010', styles: { halign: 'center' as const } }, 'EXCEPCIONES OCURRIDAS EN EL SERVICIO'],
+      [{ content: '0500', styles: { halign: 'center' as const } }, 'EXCEPCIONES OCURRIDAS FUERA DEL SERVICIO']
+    ],
+    theme: 'grid',
+    styles: { fontSize: 8.5, cellPadding: 3, lineColor: 0, lineWidth: 0.4, textColor: 0 },
+    columnStyles: {
+      0: { cellWidth: 40 },
+      1: { cellWidth: 'auto' }
+    }
+  });
+
+  finalY = (doc as any).lastAutoTable.finalY + 10;
+
+  // 2. MANEJO DE EXCEPCIONES Y ERRORES
+  doc.setFillColor(ORANGE[0], ORANGE[1], ORANGE[2]);
+  doc.rect(14, finalY, pageWidth - 28, 8, 'F');
+  doc.setTextColor(255, 255, 255);
+  doc.setFontSize(11);
+  doc.setFont('helvetica', 'bold');
+  doc.text("2. MANEJO DE EXCEPCIONES Y ERRORES", 16, finalY + 6);
+  finalY += 12;
+
+  // Render error codes list from database/custom or default standard codes
+  const errorCodesBody = [
+    [{ content: "'00", styles: { halign: 'center' as const } }, 'Solicitud de pago efectuada exitosamente'],
+    [{ content: "'03", styles: { halign: 'center' as const } }, 'Error en la longitud de los parámetros de entrada (Fecha Inválida, Número de Tarjeta)'],
+    [{ content: "'04", styles: { halign: 'center' as const } }, 'La longitud de la fecha para la transacción no es valida.'],
+    [{ content: "'05", styles: { halign: 'center' as const } }, 'Hubo un error en los parámetros de entrada'],
+    [{ content: "'06", styles: { halign: 'center' as const } }, 'Longitud de tipo de pago no permitido'],
+    [{ content: "'07", styles: { halign: 'center' as const } }, 'Tipo de pago no permitido'],
+    [{ content: "'08", styles: { halign: 'center' as const } }, 'El monto reportado para la operación no es válido'],
+    [{ content: "'09", styles: { halign: 'center' as const } }, 'La longitud del código de banco que realiza el pago no es válida.'],
+    [{ content: "'97", styles: { halign: 'center' as const } }, 'Error al procesar el pago en Línea.'],
+    [{ content: "'98", styles: { halign: 'center' as const } }, 'Error al procesar el pago en Línea, se ha encontrado que un valor que se deseaba actualizar o insertar era null.'],
+    [{ content: "'99", styles: { halign: 'center' as const } }, 'El número de transacción ya ha sido utilizado con anterioridad.']
+  ];
+
+  autoTable(doc, {
+    startY: finalY,
+    head: [
+      [
+        { content: 'Códigos', styles: { fillColor: [180, 180, 180], fontStyle: 'bold', halign: 'center' as const } },
+        { content: 'Descripción', styles: { fillColor: [180, 180, 180], fontStyle: 'bold', halign: 'center' as const } }
+      ]
+    ],
+    body: errorCodesBody,
+    theme: 'grid',
+    styles: { fontSize: 8.5, cellPadding: 2.5, lineColor: 0, lineWidth: 0.4, textColor: 0 },
+    columnStyles: {
+      0: { cellWidth: 30 },
+      1: { cellWidth: 'auto' }
     }
   });
 
