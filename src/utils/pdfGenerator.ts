@@ -58,20 +58,15 @@ const drawPageHeader = (doc: any, folderName: string, clientName: string) => {
       if (data.section === 'head' && data.row.index === 0) {
         if (data.column.index === 0 && logoNovumideasBase64) {
           try {
-            const src = logoNovumideasBase64.startsWith('data:') 
-              ? logoNovumideasBase64 
-              : `data:image/png;base64,${logoNovumideasBase64}`;
-            doc.addImage(src, 'PNG', data.cell.x + 2, data.cell.y + 2, data.cell.width - 4, data.cell.height - 4);
+            const cleanStr = logoNovumideasBase64.replace(/^data:image\/\w+;base64,/, '');
+            doc.addImage(cleanStr, 'PNG', data.cell.x + 2, data.cell.y + 2, data.cell.width - 4, data.cell.height - 4);
           } catch(e){ console.error("Error drawing logoNovumideas", e); }
         }
         if (data.column.index === 2 && logoClienteBase64) {
           try {
-            const logoStr = logoClienteBase64 as string;
-            const format = logoStr.startsWith('/9j/') ? 'JPEG' : 'PNG';
-            const src = logoStr.startsWith('data:') 
-              ? logoStr 
-              : `data:image/${format.toLowerCase()};base64,${logoStr}`;
-            doc.addImage(src, format, data.cell.x + 2, data.cell.y + 2, data.cell.width - 4, data.cell.height - 4);
+            const cleanStr = logoClienteBase64.replace(/^data:image\/\w+;base64,/, '');
+            const format = cleanStr.startsWith('/9j/') ? 'JPEG' : 'PNG';
+            doc.addImage(cleanStr, format, data.cell.x + 2, data.cell.y + 2, data.cell.width - 4, data.cell.height - 4);
           } catch(e){ console.error("Error drawing logoCliente", e); }
         }
       }
@@ -251,9 +246,10 @@ export const generateFolderPDF = (folder: Folder, folderReqs: RequestItem[], fie
 
     const inTableBody = inFields.map((f, i) => {
       const meta = fieldDatabase[f] || fieldDatabase[f.split('.').pop() || ''] || {};
+      const fieldDisplayName = f.split('.').pop() || f;
       return [
         i + 1,
-        f,
+        fieldDisplayName,
         meta.type || 'alfanumerico',
         meta.desc || 'Sin documentar',
         'Not Null',
@@ -289,9 +285,10 @@ export const generateFolderPDF = (folder: Folder, folderReqs: RequestItem[], fie
 
     const outTableBody = outFields.map((f, i) => {
       const meta = fieldDatabase[f] || fieldDatabase[f.split('.').pop() || ''] || {};
+      const fieldDisplayName = f.split('.').pop() || f;
       return [
         i + 1,
-        f,
+        fieldDisplayName,
         meta.type || 'alfanumerico',
         meta.desc || 'Sin documentar',
         'Not Null',
