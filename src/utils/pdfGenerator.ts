@@ -177,28 +177,27 @@ export const generateFolderPDF = (folder: Folder, folderReqs: RequestItem[], fie
     doc.text(splitDesc, 14, startY);
     startY += (splitDesc.length * 5) + 3;
 
-    // Tabla APIs (3 Columnas: Entorno | Base URL | x-api-key)
+    // Tabla APIs (Entorno | URL + x-api-key debajo)
+    const formatApiCell = (url: string, apiKey?: string) => {
+      if (!apiKey || apiKey.trim() === '' || apiKey === 'N/A') return url;
+      return `${url}\nx-api-key: ${apiKey}`;
+    };
+
     autoTable(doc, {
       startY,
       head: [
-        [{ content: 'APIs:', colSpan: 3, styles: { halign: 'center', fontStyle: 'bold', fillColor: [255, 255, 255], textColor: 0 } }],
-        [
-          { content: 'Entorno', styles: { fillColor: [230, 230, 230], fontStyle: 'bold', halign: 'center' } },
-          { content: 'Base URL', styles: { fillColor: [230, 230, 230], fontStyle: 'bold', halign: 'center' } },
-          { content: 'x-api-key', styles: { fillColor: [230, 230, 230], fontStyle: 'bold', halign: 'center' } }
-        ]
+        [{ content: 'APIs:', colSpan: 2, styles: { halign: 'center', fontStyle: 'bold', fillColor: [255, 255, 255], textColor: 0 } }]
       ],
       body: [
-        [{ content: 'Desarrollo', styles: { fillColor: [245, 245, 245], fontStyle: 'bold' } }, req.url, exportOptions.devApiKey || 'N/A'],
-        [{ content: 'Calidad', styles: { fillColor: [245, 245, 245], fontStyle: 'bold' } }, getReplacedUrl(req.url, exportOptions.qaUrl), exportOptions.qaApiKey || 'N/A'],
-        [{ content: 'Producción', styles: { fillColor: [245, 245, 245], fontStyle: 'bold' } }, getReplacedUrl(req.url, exportOptions.prodUrl), exportOptions.prodApiKey || 'N/A']
+        [{ content: 'Desarrollo', styles: { fillColor: [245, 245, 245], fontStyle: 'bold' } }, formatApiCell(req.url, exportOptions.devApiKey)],
+        [{ content: 'Calidad', styles: { fillColor: [245, 245, 245], fontStyle: 'bold' } }, formatApiCell(getReplacedUrl(req.url, exportOptions.qaUrl), exportOptions.qaApiKey)],
+        [{ content: 'Producción', styles: { fillColor: [245, 245, 245], fontStyle: 'bold' } }, formatApiCell(getReplacedUrl(req.url, exportOptions.prodUrl), exportOptions.prodApiKey)]
       ],
       theme: 'grid',
-      styles: { fontSize: 8, cellPadding: 2.5, lineColor: 0, lineWidth: 0.4, textColor: 0 },
+      styles: { fontSize: 8, cellPadding: 3, lineColor: 0, lineWidth: 0.4, textColor: 0 },
       columnStyles: { 
-        0: { cellWidth: 32 },
-        1: { cellWidth: 'auto' },
-        2: { cellWidth: 50 }
+        0: { cellWidth: 35 },
+        1: { cellWidth: 'auto' }
       }
     });
     startY = (doc as any).lastAutoTable.finalY + 6;
