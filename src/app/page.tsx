@@ -38,6 +38,7 @@ export default function Dashboard() {
 
   const [isExportModalOpen, setIsExportModalOpen] = useState(false);
   const [exportFolderId, setExportFolderId] = useState<string | null>(null);
+  const [exportMode, setExportMode] = useState<'download' | 'chat'>('download');
 
   useEffect(() => {
     fetch("/api/metadata").then(res => res.json()).then(data => {
@@ -117,8 +118,9 @@ export default function Dashboard() {
     } catch (error: any) { alert(error.message); } finally { setIsSavingMetadata(false); }
   };
 
-  const downloadDictionary = (folderId: string) => {
+  const downloadDictionary = (folderId: string, mode: 'download' | 'chat' = 'download') => {
     setExportFolderId(folderId);
+    setExportMode(mode);
     setIsExportModalOpen(true);
   };
 
@@ -141,8 +143,44 @@ export default function Dashboard() {
       errorCodesRaw: formData.get("errorCodes") as string || ""
     };
     
-    generateFolderPDF(folder, folderReqs, fieldDatabase, exportOptions);
-    setIsExportModalOpen(false);
+    if (exportMode === 'download') {
+      generateFolderPDF(folder, folderReqs, fieldDatabase, exportOptions);
+      setIsExportModalOpen(false);
+    } else {
+      // Chat mode
+      setIsNotifying(true);
+      setIsExportModalOpen(false);
+      try {
+        const pdfBase64 = generateFolderPDF(folder, folderReqs, fieldDatabase, exportOptions, true);
+        
+        const collectionJson = {
+          info: { name: folder.name, schema: "https://schema.getpostman.com/json/collection/v2.1.0/collection.json" },
+          item: folderReqs.map(req => ({
+            name: req.name,
+            request: {
+              method: req.method,
+              header: req.headers.filter(h => h.key.trim() !== "").map(h => ({ key: h.key, value: h.value })),
+              body: req.body ? { mode: "raw", raw: req.body, options: { raw: { language: "json" } } } : undefined,
+              url: { raw: req.url, host: req.url.split('/') }
+            }
+          }))
+        };
+
+        fetch("/api/chat/share", {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ folderName: folder.name, collectionJson, pdfBase64, origin: window.location.origin })
+        }).then(res => res.json()).then(data => {
+          if (data.error) throw new Error(data.error);
+          alert("¡Colección y PDF enviados a Google Chat exitosamente!");
+        }).catch(e => {
+          alert("Error enviando al chat: " + e.message);
+        }).finally(() => setIsNotifying(false));
+
+      } catch (e: any) {
+        alert("Error generando PDF para chat: " + e.message);
+        setIsNotifying(false);
+      }
+    }
   };
 
   const extractFieldsFromObj = (obj: any): string[] => {
@@ -259,7 +297,9 @@ export default function Dashboard() {
                 />
               </div>
 
-              <div className="pt-4"><button type="submit" className="w-full bg-gradient-to-r from-[#F26522] to-[#FF3B30] hover:scale-[1.02] shadow-lg shadow-orange-500/20 hover:shadow-orange-500/40 transition-all duration-300 text-white font-bold py-2.5 rounded-xl">Generar Diccionario</button></div>
+              <div className="pt-4"><button type="submit" className="w-full bg-gradient-to-r from-[#F26522] to-[#FF3B30] hover:scale-[1.02] shadow-lg shadow-orange-500/20 hover:shadow-orange-500/40 transition-all duration-300 text-white font-bold py-2.5 rounded-xl">
+                {exportMode === 'download' ? 'Generar Diccionario' : 'Generar y Enviar al Chat'}
+              </button></div>
             </form>
           </div>
         </div>
@@ -281,18 +321,19 @@ export default function Dashboard() {
               <ul className="space-y-0.5">
                 {requests.filter(r => r.folderId === f.id).map(r => (
                   <li key={r.id} className="flex items-center group">
-                    <button onClick={() => {setActiveReqId(r.id); setActiveFolderId(f.id);}} className={`flex-1 w-full text-left px-3 py-1.5 rounded-xl flex items-center gap-2 text-sm ${activeReqId === r.id ? 'bg-gradient-to-r from-slate-700/80 to-slate-800/80 shadow-md border border-slate-600/50 text-white' : 'text-slate-300 hover:bg-[#1E293B]/60 backdrop-blur-lg'}`}>
-                      <span className={`text-[10px] font-bold ${r.method==='GET'?'text-green-500':r.method==='POST'?'text-orange-500':'text-blue-500'}`}>{r.method}</span>
+                    <button onClick={() => {setActiveReqId(r.id); setActiveFolderId(f.id);}} className={`flex-1 min-w-0 text-left px-3 py-1.5 rounded-xl flex items-center gap-2 text-sm ${activeReqId === r.id ? 'bg-gradient-to-r from-slate-700/80 to-slate-800/80 shadow-md border border-slate-600/50 text-white' : 'text-slate-300 hover:bg-[#1E293B]/60 backdrop-blur-lg'}`}>
+                      <span className={`text-[10px] font-bold ${r.method==='GET'?'text-green-500':r.method==='POST'?'text-orange-500':'text-blue-500'} shrink-0`}>{r.method}</span>
                       <span className="truncate">{r.name}</span>
                     </button>
-                    <button onClick={(e) => { e.stopPropagation(); deleteRequest(r.id); }} className="text-red-500 hover:text-red-400 px-2 opacity-0 group-hover:opacity-100" title="Borrar Endpoint">✕</button>
+                    <button onClick={(e) => { e.stopPropagation(); deleteRequest(r.id); }} className="text-red-500 hover:text-red-400 px-2 opacity-0 group-hover:opacity-100 shrink-0" title="Borrar Endpoint">✕</button>
                   </li>
                 ))}
               </ul>
               {activeFolderId === f.id && (
                 <div className="mt-2 flex flex-col gap-1 px-2 border-l-2 border-slate-700/50 ml-2 pl-2">
                   <button onClick={() => notifyChat(f.id)} disabled={isNotifying} className="text-[10px] font-bold text-blue-400 hover:text-blue-300 transition-colors text-left">↗ Enviar Colección a Chat</button>
-                  <button onClick={() => downloadDictionary(f.id)} className="text-[10px] font-bold text-[#F26522] hover:text-[#ff8f66] text-left">↓ Descargar Diccionario y Evidencia</button>
+                  <button onClick={() => downloadDictionary(f.id, 'chat')} disabled={isNotifying} className="text-[10px] font-bold text-green-400 hover:text-green-300 transition-colors text-left">↗ Enviar Colección + PDF a Chat</button>
+                  <button onClick={() => downloadDictionary(f.id, 'download')} className="text-[10px] font-bold text-[#F26522] hover:text-[#ff8f66] text-left">↓ Descargar Diccionario y Evidencia</button>
                 </div>
               )}
             </div>

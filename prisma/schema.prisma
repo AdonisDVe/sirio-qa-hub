@@ -67,5 +67,6 @@ model CollectionExport {
   id             String   @id @default(uuid())
   folderName     String
   collectionJson String   // JSON string
+  pdfBase64      String?  // Base64 of the PDF
   createdAt      DateTime @default(now())
 }

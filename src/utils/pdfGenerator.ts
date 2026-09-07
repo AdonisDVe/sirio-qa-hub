@@ -75,7 +75,7 @@ const drawPageHeader = (doc: any, folderName: string, clientName: string) => {
   return (doc as any).lastAutoTable.finalY;
 };
 
-export const generateFolderPDF = (folder: Folder, folderReqs: RequestItem[], fieldDatabase: Record<string, any>, exportOptions: any) => {
+export const generateFolderPDF = (folder: Folder, folderReqs: RequestItem[], fieldDatabase: Record<string, any>, exportOptions: any, returnBase64: boolean = false) => {
   const doc = new jsPDF();
   const pageWidth = doc.internal.pageSize.getWidth();
   const pageHeight = doc.internal.pageSize.getHeight();
@@ -454,5 +454,8 @@ export const generateFolderPDF = (folder: Folder, folderReqs: RequestItem[], fie
     }
   });
 
+  if (returnBase64) {
+    return doc.output('datauristring');
+  }
   doc.save(`Diccionario_${folder.name.replace(/\s+/g, '_')}.pdf`);
 };

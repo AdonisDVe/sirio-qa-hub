@@ -5,7 +5,7 @@ const prisma = new PrismaClient();
 
 export async function POST(request: Request) {
   try {
-    const { folderName, collectionJson, origin } = await request.json();
+    const { folderName, collectionJson, pdfBase64, origin } = await request.json();
     
     if (!folderName || !collectionJson) {
       return NextResponse.json({ error: 'Faltan datos' }, { status: 400 });
@@ -14,23 +14,37 @@ export async function POST(request: Request) {
     const exportRecord = await prisma.collectionExport.create({
       data: {
         folderName,
-        collectionJson: typeof collectionJson === 'string' ? collectionJson : JSON.stringify(collectionJson)
+        collectionJson: typeof collectionJson === 'string' ? collectionJson : JSON.stringify(collectionJson),
+        pdfBase64: pdfBase64 || null
       }
     });
 
     const baseUrl = origin || 'http://localhost:3000';
     const downloadLink = `${baseUrl}/api/chat/download?id=${exportRecord.id}`;
+    const pdfDownloadLink = `${baseUrl}/api/chat/downloadPdf?id=${exportRecord.id}`;
 
     const GOOGLE_CHAT_WEBHOOK_URL = process.env.GOOGLE_CHAT_WEBHOOK;
     if (GOOGLE_CHAT_WEBHOOK_URL) {
+      
+      const buttons = [
+        { textButton: { text: "📥 Descargar Colección Postman", onClick: { openLink: { url: downloadLink } } } }
+      ];
+      
+      let textLinks = `🔗 Colección Postman:\n${downloadLink}`;
+
+      if (pdfBase64) {
+        buttons.push({ textButton: { text: "📄 Descargar Diccionario PDF", onClick: { openLink: { url: pdfDownloadLink } } } });
+        textLinks += `\n\n🔗 Diccionario PDF:\n${pdfDownloadLink}`;
+      }
+
       const chatMessage = {
         cards: [{
           header: { title: "✅ Colección Aprobada", subtitle: "Sirio Postman Collector" },
           sections: [{
             widgets: [
               { textParagraph: { text: `🚀 El requerimiento/carpeta *${folderName}* ha sido certificado y está listo.` } },
-              { textParagraph: { text: `🔗 Link directo (copiar y pegar si el botón falla):\n${downloadLink}` } },
-              { buttons: [{ textButton: { text: "📥 Descargar Colección Postman", onClick: { openLink: { url: downloadLink } } } }] }
+              { textParagraph: { text: textLinks } },
+              { buttons }
             ]
           }]
         }]
