@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
+import { PrismaClient } from '@prisma/client';
 
-// Caché en memoria para guardar las colecciones temporalmente (ideal para uso local)
-const exportCache = new Map<string, any>();
+const prisma = new PrismaClient();
 
 export async function POST(request: Request) {
   try {
@@ -11,17 +11,21 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Faltan datos' }, { status: 400 });
     }
 
-    const exportId = Date.now().toString();
-    exportCache.set(exportId, { folderName, collectionJson });
+    const exportRecord = await prisma.collectionExport.create({
+      data: {
+        folderName,
+        collectionJson: typeof collectionJson === 'string' ? collectionJson : JSON.stringify(collectionJson)
+      }
+    });
 
     const baseUrl = origin || 'http://localhost:3000';
-    const downloadLink = `${baseUrl}/api/chat/download?id=${exportId}`;
+    const downloadLink = `${baseUrl}/api/chat/download?id=${exportRecord.id}`;
 
     const GOOGLE_CHAT_WEBHOOK_URL = process.env.GOOGLE_CHAT_WEBHOOK;
     if (GOOGLE_CHAT_WEBHOOK_URL) {
       const chatMessage = {
         cards: [{
-          header: { title: "✅ Colección Aprobada", subtitle: "Sirio QA Hub" },
+          header: { title: "✅ Colección Aprobada", subtitle: "Sirio Postman Collector" },
           sections: [{
             widgets: [
               { textParagraph: { text: `🚀 El requerimiento/carpeta *${folderName}* ha sido certificado y está listo.` } },
@@ -49,6 +53,3 @@ export async function POST(request: Request) {
 export async function GET(request: Request) {
   return NextResponse.json({ error: 'Use POST to share' }, { status: 405 });
 }
-
-// Exportamos el caché para que la ruta de descarga pueda leerlo
-export { exportCache };

@@ -264,7 +264,7 @@ export default function Dashboard() {
       {/* Sidebar - Carpetas y Colecciones */}
       <aside className="w-64 bg-[#1C1C1C] flex flex-col border-r border-[#3A3A3A] shrink-0">
         <div className="p-4 border-b border-[#3A3A3A] flex justify-between items-center">
-          <h1 className="text-[#FF6C37] font-bold tracking-wide">Sirio QA Hub</h1>
+          <h1 className="text-[#FF6C37] font-bold tracking-wide">Sirio Postman Collector</h1>
           <button onClick={addFolder} className="text-slate-400 hover:text-white text-xl" title="Nueva Carpeta">+</button>
         </div>
         <div className="flex-1 overflow-y-auto p-2 space-y-4">

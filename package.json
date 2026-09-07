@@ -13,10 +13,12 @@
     "@prisma/client": "^5.22.0",
     "jspdf": "^4.2.1",
     "jspdf-autotable": "^5.0.8",
+    "lucide-react": "^1.42.0",
     "newman": "^6.2.2",
     "next": "16.3.4",
     "react": "19.2.8",
-    "react-dom": "19.2.8"
+    "react-dom": "19.2.8",
+    "sonner": "^2.0.8"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",

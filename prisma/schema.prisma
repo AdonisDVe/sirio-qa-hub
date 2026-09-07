@@ -37,3 +37,34 @@ model Environment {
   variables String   // JSON string
   createdAt DateTime @default(now())
 }
+
+// 4. Gestión de Colecciones (Carpetas)
+model Folder {
+  id        String        @id @default(uuid())
+  name      String
+  requests  RequestItem[]
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+}
+
+// 5. Peticiones de las Colecciones
+model RequestItem {
+  id        String   @id @default(uuid())
+  folderId  String
+  folder    Folder   @relation(fields: [folderId], references: [id], onDelete: Cascade)
+  name      String
+  method    String
+  url       String
+  headers   String   // JSON string of headers array
+  body      String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// 6. Exportación a Chat
+model CollectionExport {
+  id             String   @id @default(uuid())
+  folderName     String
+  collectionJson String   // JSON string
+  createdAt      DateTime @default(now())
+}
