@@ -58,17 +58,15 @@ const drawPageHeader = (doc: any, folderName: string, clientName: string) => {
       if (data.section === 'head' && data.row.index === 0) {
         if (data.column.index === 0 && logoNovumideasBase64) {
           try {
-            const raw = logoNovumideasBase64.replace(/^data:image\/\w+;base64,/, '');
-            const dataUri = `data:image/png;base64,${raw}`;
-            doc.addImage(dataUri, 'PNG', data.cell.x + 2, data.cell.y + 2, data.cell.width - 4, data.cell.height - 4);
+            const raw = logoNovumideasBase64.replace(/^data:image\/\w+;base64,/, '').replace(/\s+/g, '');
+            doc.addImage(raw, 'PNG', data.cell.x + 2, data.cell.y + 2, data.cell.width - 4, data.cell.height - 4);
           } catch(e){ console.error("Error drawing logoNovumideas", e); }
         }
         if (data.column.index === 2 && logoClienteBase64) {
           try {
-            const raw = logoClienteBase64.replace(/^data:image\/\w+;base64,/, '');
+            const raw = logoClienteBase64.replace(/^data:image\/\w+;base64,/, '').replace(/\s+/g, '');
             const format = raw.startsWith('/9j/') ? 'JPEG' : 'PNG';
-            const dataUri = `data:image/${format.toLowerCase()};base64,${raw}`;
-            doc.addImage(dataUri, format, data.cell.x + 2, data.cell.y + 2, data.cell.width - 4, data.cell.height - 4);
+            doc.addImage(raw, format, data.cell.x + 2, data.cell.y + 2, data.cell.width - 4, data.cell.height - 4);
           } catch(e){ console.error("Error drawing logoCliente", e); }
         }
       }

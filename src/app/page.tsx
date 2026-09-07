@@ -75,6 +75,15 @@ export default function Dashboard() {
     setActiveReqId(newId);
   };
 
+  const deleteRequest = (id: string) => {
+    if (confirm("¿Seguro que deseas borrar este endpoint?")) {
+      setRequests(prev => prev.filter(r => r.id !== id));
+      if (activeReqId === id) {
+        setActiveReqId("");
+      }
+    }
+  };
+
   const sendRequest = async () => {
     if (!activeReq || !activeReq.url) return;
     setIsSending(true);
@@ -271,11 +280,12 @@ export default function Dashboard() {
               </div>
               <ul className="space-y-0.5">
                 {requests.filter(r => r.folderId === f.id).map(r => (
-                  <li key={r.id}>
-                    <button onClick={() => {setActiveReqId(r.id); setActiveFolderId(f.id);}} className={`w-full text-left px-3 py-1.5 rounded flex items-center gap-2 text-sm ${activeReqId === r.id ? 'bg-[#3A3A3A] text-white' : 'text-slate-300 hover:bg-[#2B2B2B]'}`}>
+                  <li key={r.id} className="flex items-center group">
+                    <button onClick={() => {setActiveReqId(r.id); setActiveFolderId(f.id);}} className={`flex-1 w-full text-left px-3 py-1.5 rounded flex items-center gap-2 text-sm ${activeReqId === r.id ? 'bg-[#3A3A3A] text-white' : 'text-slate-300 hover:bg-[#2B2B2B]'}`}>
                       <span className={`text-[10px] font-bold ${r.method==='GET'?'text-green-500':r.method==='POST'?'text-orange-500':'text-blue-500'}`}>{r.method}</span>
                       <span className="truncate">{r.name}</span>
                     </button>
+                    <button onClick={(e) => { e.stopPropagation(); deleteRequest(r.id); }} className="text-red-500 hover:text-red-400 px-2 opacity-0 group-hover:opacity-100" title="Borrar Endpoint">✕</button>
                   </li>
                 ))}
               </ul>
