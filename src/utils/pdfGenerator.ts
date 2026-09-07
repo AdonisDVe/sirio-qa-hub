@@ -410,20 +410,35 @@ export const generateFolderPDF = (folder: Folder, folderReqs: RequestItem[], fie
   doc.text("2. MANEJO DE EXCEPCIONES Y ERRORES", 16, finalY + 6);
   finalY += 12;
 
-  // Render error codes list from database/custom or default standard codes
-  const errorCodesBody = [
-    [{ content: "'00", styles: { halign: 'center' as const } }, 'Solicitud de pago efectuada exitosamente'],
-    [{ content: "'03", styles: { halign: 'center' as const } }, 'Error en la longitud de los parámetros de entrada (Fecha Inválida, Número de Tarjeta)'],
-    [{ content: "'04", styles: { halign: 'center' as const } }, 'La longitud de la fecha para la transacción no es valida.'],
-    [{ content: "'05", styles: { halign: 'center' as const } }, 'Hubo un error en los parámetros de entrada'],
-    [{ content: "'06", styles: { halign: 'center' as const } }, 'Longitud de tipo de pago no permitido'],
-    [{ content: "'07", styles: { halign: 'center' as const } }, 'Tipo de pago no permitido'],
-    [{ content: "'08", styles: { halign: 'center' as const } }, 'El monto reportado para la operación no es válido'],
-    [{ content: "'09", styles: { halign: 'center' as const } }, 'La longitud del código de banco que realiza el pago no es válida.'],
-    [{ content: "'97", styles: { halign: 'center' as const } }, 'Error al procesar el pago en Línea.'],
-    [{ content: "'98", styles: { halign: 'center' as const } }, 'Error al procesar el pago en Línea, se ha encontrado que un valor que se deseaba actualizar o insertar era null.'],
-    [{ content: "'99", styles: { halign: 'center' as const } }, 'El número de transacción ya ha sido utilizado con anterioridad.']
-  ];
+  // Parse user-edited error codes or default
+  let errorCodesBody: any[] = [];
+  if (exportOptions.errorCodesRaw && exportOptions.errorCodesRaw.trim() !== '') {
+    const lines = exportOptions.errorCodesRaw.split('\n');
+    lines.forEach((line: string) => {
+      const parts = line.split(':');
+      if (parts.length >= 2) {
+        const code = parts[0].trim();
+        const desc = parts.slice(1).join(':').trim();
+        errorCodesBody.push([{ content: code, styles: { halign: 'center' as const } }, desc]);
+      } else if (line.trim() !== '') {
+        errorCodesBody.push([{ content: '-', styles: { halign: 'center' as const } }, line.trim()]);
+      }
+    });
+  } else {
+    errorCodesBody = [
+      [{ content: "'00", styles: { halign: 'center' as const } }, 'Solicitud de pago efectuada exitosamente'],
+      [{ content: "'03", styles: { halign: 'center' as const } }, 'Error en la longitud de los parámetros de entrada (Fecha Inválida, Número de Tarjeta)'],
+      [{ content: "'04", styles: { halign: 'center' as const } }, 'La longitud de la fecha para la transacción no es valida.'],
+      [{ content: "'05", styles: { halign: 'center' as const } }, 'Hubo un error en los parámetros de entrada'],
+      [{ content: "'06", styles: { halign: 'center' as const } }, 'Longitud de tipo de pago no permitido'],
+      [{ content: "'07", styles: { halign: 'center' as const } }, 'Tipo de pago no permitido'],
+      [{ content: "'08", styles: { halign: 'center' as const } }, 'El monto reportado para la operación no es válido'],
+      [{ content: "'09", styles: { halign: 'center' as const } }, 'La longitud del código de banco que realiza el pago no es válida.'],
+      [{ content: "'97", styles: { halign: 'center' as const } }, 'Error al procesar el pago en Línea.'],
+      [{ content: "'98", styles: { halign: 'center' as const } }, 'Error al procesar el pago en Línea, se ha encontrado que un valor que se deseaba actualizar o insertar era null.'],
+      [{ content: "'99", styles: { halign: 'center' as const } }, 'El número de transacción ya ha sido utilizado con anterioridad.']
+    ];
+  }
 
   autoTable(doc, {
     startY: finalY,

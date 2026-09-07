@@ -128,7 +128,8 @@ export default function Dashboard() {
       qaUrl: formData.get("qaUrl") as string || "",
       qaApiKey: formData.get("qaApiKey") as string || "",
       prodUrl: formData.get("prodUrl") as string || "",
-      prodApiKey: formData.get("prodApiKey") as string || ""
+      prodApiKey: formData.get("prodApiKey") as string || "",
+      errorCodesRaw: formData.get("errorCodes") as string || ""
     };
     
     generateFolderPDF(folder, folderReqs, fieldDatabase, exportOptions);
@@ -236,6 +237,17 @@ export default function Dashboard() {
                 <label className="text-xs font-bold text-green-400">PRODUCCIÓN</label>
                 <input name="prodUrl" type="url" placeholder="Base URL Producción: http://prod.api.com" className="mt-1 w-full bg-[#1C1C1C] px-3 py-2 border border-[#3A3A3A] rounded text-white outline-none focus:border-[#FF6C37] text-xs font-mono" />
                 <input name="prodApiKey" type="text" placeholder="x-api-key Producción (Opcional)" className="mt-2 w-full bg-[#1C1C1C] px-3 py-2 border border-[#3A3A3A] rounded text-white outline-none focus:border-[#FF6C37] text-xs font-mono" />
+              </div>
+
+              <div className="border-t border-[#3A3A3A] pt-3">
+                <label className="text-xs font-bold text-yellow-400">MANEJO DE EXCEPCIONES Y ERRORES</label>
+                <p className="text-[11px] text-slate-400 mt-0.5">Un código y descripción por línea (formato: <code>Código: Descripción</code>)</p>
+                <textarea 
+                  name="errorCodes" 
+                  rows={6}
+                  defaultValue={`'00: Solicitud de pago efectuada exitosamente\n'03: Error en la longitud de los parámetros de entrada (Fecha Inválida, Número de Tarjeta)\n'04: La longitud de la fecha para la transacción no es valida.\n'05: Hubo un error en los parámetros de entrada\n'06: Longitud de tipo de pago no permitido\n'07: Tipo de pago no permitido\n'08: El monto reportado para la operación no es válido\n'09: La longitud del código de banco que realiza el pago no es válida.\n97: Error al procesar el pago en Línea.\n98: Error al procesar el pago en Línea, se ha encontrado que un valor que se deseaba actualizar o insertar era null.\n99: El número de transacción ya ha sido utilizado con anterioridad.`} 
+                  className="mt-1 w-full bg-[#1C1C1C] p-3 border border-[#3A3A3A] rounded text-white outline-none focus:border-[#FF6C37] text-xs font-mono"
+                />
               </div>
 
               <div className="pt-4"><button type="submit" className="w-full bg-[#FF6C37] hover:bg-[#E55B2B] text-white font-bold py-2.5 rounded">Generar Diccionario</button></div>
