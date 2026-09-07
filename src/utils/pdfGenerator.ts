@@ -58,15 +58,21 @@ const drawPageHeader = (doc: any, folderName: string, clientName: string) => {
       if (data.section === 'head' && data.row.index === 0) {
         if (data.column.index === 0 && logoNovumideasBase64) {
           try {
-            doc.addImage(logoNovumideasBase64, 'PNG', data.cell.x + 2, data.cell.y + 2, data.cell.width - 4, data.cell.height - 4);
-          } catch(e){}
+            const src = logoNovumideasBase64.startsWith('data:') 
+              ? logoNovumideasBase64 
+              : `data:image/png;base64,${logoNovumideasBase64}`;
+            doc.addImage(src, 'PNG', data.cell.x + 2, data.cell.y + 2, data.cell.width - 4, data.cell.height - 4);
+          } catch(e){ console.error("Error drawing logoNovumideas", e); }
         }
         if (data.column.index === 2 && logoClienteBase64) {
           try {
             const logoStr = logoClienteBase64 as string;
             const format = logoStr.startsWith('/9j/') ? 'JPEG' : 'PNG';
-            doc.addImage(logoStr, format, data.cell.x + 2, data.cell.y + 2, data.cell.width - 4, data.cell.height - 4);
-          } catch(e){}
+            const src = logoStr.startsWith('data:') 
+              ? logoStr 
+              : `data:image/${format.toLowerCase()};base64,${logoStr}`;
+            doc.addImage(src, format, data.cell.x + 2, data.cell.y + 2, data.cell.width - 4, data.cell.height - 4);
+          } catch(e){ console.error("Error drawing logoCliente", e); }
         }
       }
     }
@@ -177,26 +183,57 @@ export const generateFolderPDF = (folder: Folder, folderReqs: RequestItem[], fie
     doc.text(splitDesc, 14, startY);
     startY += (splitDesc.length * 5) + 3;
 
-    // Tabla APIs (Entorno | URL + x-api-key debajo)
-    const formatApiCell = (url: string, apiKey?: string) => {
-      if (!apiKey || apiKey.trim() === '' || apiKey === 'N/A') return url;
-      return `${url}\nx-api-key: ${apiKey}`;
-    };
+    // Tabla APIs (Filas separadas de Entorno y HEADER - Entorno)
+    const apiBody: any[] = [];
+    
+    // Desarrollo
+    apiBody.push([
+      { content: 'Desarrollo', styles: { fillColor: [225, 225, 225], fontStyle: 'bold' } },
+      { content: req.url, styles: { textColor: [0, 0, 238], fontStyle: 'bold' } }
+    ]);
+    if (exportOptions.devApiKey && exportOptions.devApiKey.trim() !== '') {
+      apiBody.push([
+        { content: 'HEADER -\nDesarrollo', styles: { fillColor: [225, 225, 225], fontStyle: 'bold' } },
+        { content: `X-API-Key:  ${exportOptions.devApiKey}`, styles: { textColor: [0, 0, 238], fontStyle: 'bold' } }
+      ]);
+    }
+
+    // Calidad
+    const qaUrl = getReplacedUrl(req.url, exportOptions.qaUrl);
+    apiBody.push([
+      { content: 'Calidad', styles: { fillColor: [225, 225, 225], fontStyle: 'bold' } },
+      { content: qaUrl, styles: { textColor: [0, 0, 238], fontStyle: 'bold' } }
+    ]);
+    if (exportOptions.qaApiKey && exportOptions.qaApiKey.trim() !== '') {
+      apiBody.push([
+        { content: 'HEADER -\nCalidad', styles: { fillColor: [225, 225, 225], fontStyle: 'bold' } },
+        { content: `X-API-Key:  ${exportOptions.qaApiKey}`, styles: { textColor: [0, 0, 238], fontStyle: 'bold' } }
+      ]);
+    }
+
+    // Producción
+    const prodUrl = getReplacedUrl(req.url, exportOptions.prodUrl);
+    apiBody.push([
+      { content: 'Producción', styles: { fillColor: [225, 225, 225], fontStyle: 'bold' } },
+      { content: prodUrl, styles: { textColor: [0, 0, 238], fontStyle: 'bold' } }
+    ]);
+    if (exportOptions.prodApiKey && exportOptions.prodApiKey.trim() !== '') {
+      apiBody.push([
+        { content: 'HEADER -\nProducción', styles: { fillColor: [225, 225, 225], fontStyle: 'bold' } },
+        { content: `X-API-Key:  ${exportOptions.prodApiKey}`, styles: { textColor: [0, 0, 238], fontStyle: 'bold' } }
+      ]);
+    }
 
     autoTable(doc, {
       startY,
       head: [
         [{ content: 'APIs:', colSpan: 2, styles: { halign: 'center', fontStyle: 'bold', fillColor: [255, 255, 255], textColor: 0 } }]
       ],
-      body: [
-        [{ content: 'Desarrollo', styles: { fillColor: [245, 245, 245], fontStyle: 'bold' } }, formatApiCell(req.url, exportOptions.devApiKey)],
-        [{ content: 'Calidad', styles: { fillColor: [245, 245, 245], fontStyle: 'bold' } }, formatApiCell(getReplacedUrl(req.url, exportOptions.qaUrl), exportOptions.qaApiKey)],
-        [{ content: 'Producción', styles: { fillColor: [245, 245, 245], fontStyle: 'bold' } }, formatApiCell(getReplacedUrl(req.url, exportOptions.prodUrl), exportOptions.prodApiKey)]
-      ],
+      body: apiBody,
       theme: 'grid',
-      styles: { fontSize: 8, cellPadding: 3, lineColor: 0, lineWidth: 0.4, textColor: 0 },
+      styles: { fontSize: 8.5, cellPadding: 3, lineColor: 0, lineWidth: 0.4, textColor: 0 },
       columnStyles: { 
-        0: { cellWidth: 35 },
+        0: { cellWidth: 42 },
         1: { cellWidth: 'auto' }
       }
     });
