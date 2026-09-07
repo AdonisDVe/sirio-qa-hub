@@ -124,8 +124,11 @@ export default function Dashboard() {
     const exportOptions = {
       clientName: formData.get("clientName") as string || "Banco Plaza",
       reqNumber: formData.get("reqNumber") as string || "",
+      devApiKey: formData.get("devApiKey") as string || "",
       qaUrl: formData.get("qaUrl") as string || "",
-      prodUrl: formData.get("prodUrl") as string || ""
+      qaApiKey: formData.get("qaApiKey") as string || "",
+      prodUrl: formData.get("prodUrl") as string || "",
+      prodApiKey: formData.get("prodApiKey") as string || ""
     };
     
     generateFolderPDF(folder, folderReqs, fieldDatabase, exportOptions);
@@ -209,16 +212,32 @@ export default function Dashboard() {
 
       {isExportModalOpen && (
         <div className="absolute inset-0 bg-black/60 z-50 flex items-center justify-center backdrop-blur-sm">
-          <div className="bg-[#2B2B2B] rounded-lg shadow-2xl w-full max-w-md overflow-hidden border border-[#3A3A3A]">
+          <div className="bg-[#2B2B2B] rounded-lg shadow-2xl w-full max-w-md overflow-hidden border border-[#3A3A3A] max-h-[90vh] flex flex-col">
             <div className="bg-[#1C1C1C] px-6 py-4 flex justify-between items-center border-b border-[#3A3A3A]">
               <h3 className="text-white font-semibold">Opciones de Exportación PDF</h3>
               <button onClick={() => setIsExportModalOpen(false)} className="text-slate-400 hover:text-white">✕</button>
             </div>
-            <form onSubmit={exportFolderPDF} className="p-6 space-y-4">
+            <form onSubmit={exportFolderPDF} className="p-6 space-y-4 overflow-y-auto">
               <div><label className="text-xs font-bold text-slate-400">NOMBRE DEL CLIENTE</label><input name="clientName" type="text" placeholder="Ej: Banco Plaza" defaultValue="Banco Plaza" required className="mt-1 w-full bg-[#1C1C1C] px-3 py-2 border border-[#3A3A3A] rounded text-white outline-none focus:border-[#FF6C37]" /></div>
               <div><label className="text-xs font-bold text-slate-400">NÚMERO DE REQUERIMIENTO</label><input name="reqNumber" type="text" placeholder="Ej: REQ-2026-001" className="mt-1 w-full bg-[#1C1C1C] px-3 py-2 border border-[#3A3A3A] rounded text-white outline-none focus:border-[#FF6C37]" /></div>
-              <div><label className="text-xs font-bold text-slate-400">BASE URL - CALIDAD (QA)</label><input name="qaUrl" type="url" placeholder="Ej: http://qa.api.com" className="mt-1 w-full bg-[#1C1C1C] px-3 py-2 border border-[#3A3A3A] rounded text-white outline-none focus:border-[#FF6C37]" /></div>
-              <div><label className="text-xs font-bold text-slate-400">BASE URL - PRODUCCIÓN</label><input name="prodUrl" type="url" placeholder="Ej: http://prod.api.com" className="mt-1 w-full bg-[#1C1C1C] px-3 py-2 border border-[#3A3A3A] rounded text-white outline-none focus:border-[#FF6C37]" /></div>
+              
+              <div className="border-t border-[#3A3A3A] pt-3">
+                <label className="text-xs font-bold text-[#FF6C37]">DESARROLLO</label>
+                <input name="devApiKey" type="text" placeholder="x-api-key Desarrollo (Opcional)" className="mt-1 w-full bg-[#1C1C1C] px-3 py-2 border border-[#3A3A3A] rounded text-white outline-none focus:border-[#FF6C37] text-xs font-mono" />
+              </div>
+
+              <div className="border-t border-[#3A3A3A] pt-3">
+                <label className="text-xs font-bold text-blue-400">CALIDAD (QA)</label>
+                <input name="qaUrl" type="url" placeholder="Base URL QA: http://qa.api.com" className="mt-1 w-full bg-[#1C1C1C] px-3 py-2 border border-[#3A3A3A] rounded text-white outline-none focus:border-[#FF6C37] text-xs font-mono" />
+                <input name="qaApiKey" type="text" placeholder="x-api-key QA (Opcional)" className="mt-2 w-full bg-[#1C1C1C] px-3 py-2 border border-[#3A3A3A] rounded text-white outline-none focus:border-[#FF6C37] text-xs font-mono" />
+              </div>
+
+              <div className="border-t border-[#3A3A3A] pt-3">
+                <label className="text-xs font-bold text-green-400">PRODUCCIÓN</label>
+                <input name="prodUrl" type="url" placeholder="Base URL Producción: http://prod.api.com" className="mt-1 w-full bg-[#1C1C1C] px-3 py-2 border border-[#3A3A3A] rounded text-white outline-none focus:border-[#FF6C37] text-xs font-mono" />
+                <input name="prodApiKey" type="text" placeholder="x-api-key Producción (Opcional)" className="mt-2 w-full bg-[#1C1C1C] px-3 py-2 border border-[#3A3A3A] rounded text-white outline-none focus:border-[#FF6C37] text-xs font-mono" />
+              </div>
+
               <div className="pt-4"><button type="submit" className="w-full bg-[#FF6C37] hover:bg-[#E55B2B] text-white font-bold py-2.5 rounded">Generar Diccionario</button></div>
             </form>
           </div>

@@ -172,24 +172,36 @@ export const generateFolderPDF = (folder: Folder, folderReqs: RequestItem[], fie
     doc.setTextColor(0, 0, 0);
     doc.setFontSize(9);
     doc.setFont('helvetica', 'normal');
-    const descText = `A continuación se informa los links de los ambientes correspondientes (Desarrollo / Calidad / Producción) y la distribución de los campos de entrada / salida en relación al servicio de:\n${req.name}`;
-    doc.text(descText, 14, startY);
-    startY += 10;
+    const descText = `A continuación se informa los links de los ambientes correspondientes (Desarrollo / Calidad / Producción) y la distribución de los campos de entrada / salida en relación al servicio de ${req.name}:`;
+    const splitDesc = doc.splitTextToSize(descText, pageWidth - 28);
+    doc.text(splitDesc, 14, startY);
+    startY += (splitDesc.length * 5) + 3;
 
-    // Tabla APIs
+    // Tabla APIs (3 Columnas: Entorno | Base URL | x-api-key)
     autoTable(doc, {
       startY,
-      head: [[{ content: 'APIs:', colSpan: 2, styles: { halign: 'center', fontStyle: 'bold', fillColor: [255, 255, 255], textColor: 0 } }]],
+      head: [
+        [{ content: 'APIs:', colSpan: 3, styles: { halign: 'center', fontStyle: 'bold', fillColor: [255, 255, 255], textColor: 0 } }],
+        [
+          { content: 'Entorno', styles: { fillColor: [230, 230, 230], fontStyle: 'bold', halign: 'center' } },
+          { content: 'Base URL', styles: { fillColor: [230, 230, 230], fontStyle: 'bold', halign: 'center' } },
+          { content: 'x-api-key', styles: { fillColor: [230, 230, 230], fontStyle: 'bold', halign: 'center' } }
+        ]
+      ],
       body: [
-        [{ content: 'Desarrollo', styles: { fillColor: [220, 220, 220], fontStyle: 'bold' } }, req.url],
-        [{ content: 'Calidad', styles: { fillColor: [220, 220, 220], fontStyle: 'bold' } }, getReplacedUrl(req.url, exportOptions.qaUrl)],
-        [{ content: 'Producción', styles: { fillColor: [220, 220, 220], fontStyle: 'bold' } }, getReplacedUrl(req.url, exportOptions.prodUrl)]
+        [{ content: 'Desarrollo', styles: { fillColor: [245, 245, 245], fontStyle: 'bold' } }, req.url, exportOptions.devApiKey || 'N/A'],
+        [{ content: 'Calidad', styles: { fillColor: [245, 245, 245], fontStyle: 'bold' } }, getReplacedUrl(req.url, exportOptions.qaUrl), exportOptions.qaApiKey || 'N/A'],
+        [{ content: 'Producción', styles: { fillColor: [245, 245, 245], fontStyle: 'bold' } }, getReplacedUrl(req.url, exportOptions.prodUrl), exportOptions.prodApiKey || 'N/A']
       ],
       theme: 'grid',
-      styles: { fontSize: 9, cellPadding: 2, lineColor: 0, lineWidth: 0.5, textColor: 0 },
-      columnStyles: { 0: { cellWidth: 40 } }
+      styles: { fontSize: 8, cellPadding: 2.5, lineColor: 0, lineWidth: 0.4, textColor: 0 },
+      columnStyles: { 
+        0: { cellWidth: 32 },
+        1: { cellWidth: 'auto' },
+        2: { cellWidth: 50 }
+      }
     });
-    startY = (doc as any).lastAutoTable.finalY + 5;
+    startY = (doc as any).lastAutoTable.finalY + 6;
 
     // PARAMETROS DE ENTRADA
     let inFields: string[] = [];
