@@ -46,6 +46,7 @@ const drawPageHeader = (doc: any, folderName: string, clientName: string) => {
     head: [['', { content: folderName, styles: { halign: 'center', fontStyle: 'bold' } }, { content: clientName, styles: { halign: 'center', fontStyle: 'bold' } }]],
     body: [['', '', '']],
     theme: 'grid',
+    headStyles: { fillColor: [255, 255, 255], textColor: 0, fontStyle: 'bold' },
     styles: { cellPadding: 4, fontSize: 10, lineColor: [200, 200, 200], lineWidth: 0.1, textColor: 0, minCellHeight: 18 },
     columnStyles: {
       0: { cellWidth: 50 },
@@ -62,7 +63,9 @@ const drawPageHeader = (doc: any, folderName: string, clientName: string) => {
         }
         if (data.column.index === 2 && logoClienteBase64) {
           try {
-            doc.addImage(logoClienteBase64, 'PNG', data.cell.x + 2, data.cell.y + 2, data.cell.width - 4, data.cell.height - 4);
+            const logoStr = logoClienteBase64 as string;
+            const format = logoStr.startsWith('/9j/') ? 'JPEG' : 'PNG';
+            doc.addImage(logoStr, format, data.cell.x + 2, data.cell.y + 2, data.cell.width - 4, data.cell.height - 4);
           } catch(e){}
         }
       }
