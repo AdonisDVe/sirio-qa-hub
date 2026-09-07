@@ -14,7 +14,8 @@ export async function GET() {
         desc: f.description,
         type: f.dataType,
         mandatory: f.isMandatory,
-        businessValue: f.businessValue
+        businessValue: f.businessValue,
+        length: f.length
       };
     });
     return NextResponse.json(fieldDatabase);
@@ -28,27 +29,32 @@ export async function GET() {
 export async function POST(request: Request) {
   try {
     const data = await request.json();
-    const { fieldName, description, dataType, isMandatory, businessValue } = data;
+    const { fieldName, description, dataType, isMandatory, businessValue, length } = data;
 
-    if (!fieldName || !description || !dataType) {
+    if (!fieldName) {
       return NextResponse.json({ error: 'Faltan campos obligatorios' }, { status: 400 });
     }
+
+    const desc = description || 'Sin documentar';
+    const type = dataType || 'Alfanumérico';
 
     // Upsert: Si existe lo actualiza, si no existe lo crea
     const field = await prisma.fieldMetadata.upsert({
       where: { fieldName: fieldName },
       update: {
-        description,
-        dataType,
+        description: desc,
+        dataType: type,
         isMandatory,
-        businessValue
+        businessValue,
+        length
       },
       create: {
         fieldName,
-        description,
-        dataType,
+        description: desc,
+        dataType: type,
         isMandatory,
-        businessValue
+        businessValue,
+        length
       }
     });
 

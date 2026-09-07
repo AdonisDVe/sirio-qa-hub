@@ -16,6 +16,7 @@ model FieldMetadata {
   dataType      String   // Ej: "Alfanumérico", "Numérico"
   isMandatory   Boolean  @default(true) 
   businessValue String?  
+  length        String?  // Ej: "5", "10", "20"
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 }

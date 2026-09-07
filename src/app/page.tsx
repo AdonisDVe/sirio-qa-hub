@@ -1,7 +1,6 @@
 "use client";
 import React, { useState, useEffect } from "react";
-import jsPDF from 'jspdf';
-import autoTable from 'jspdf-autotable';
+import { generateFolderPDF } from '../utils/pdfGenerator';
 
 type Folder = { id: string; name: string; };
 type RequestItem = {
@@ -78,7 +77,7 @@ export default function Dashboard() {
     setIsSending(true);
     updateActiveReq({ response: null });
     const headersObj: Record<string, string> = {};
-    activeReq.headers.forEach(h => { if (h.key.trim()) headersObj[h.key.trim()] = h.value; });
+    activeReq.headers.forEach(h => { if (h.key.trim()) headersObj[h.key.trim()] = h.value.trim(); });
     try {
       const res = await fetch("/api/proxy", {
         method: "POST", headers: { "Content-Type": "application/json" },
@@ -95,14 +94,22 @@ export default function Dashboard() {
     const formData = new FormData(e.currentTarget);
     const payload = {
       fieldName: selectedField, description: formData.get("desc"), dataType: formData.get("type"),
-      isMandatory: formData.get("mandatory") === "on", businessValue: formData.get("businessValue")
+      isMandatory: formData.get("mandatory") === "on", businessValue: formData.get("businessValue"),
+      length: formData.get("length")
     };
     try {
       const res = await fetch("/api/metadata", { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
       if (!res.ok) throw new Error("Error guardando");
-      setFieldDatabase(prev => ({ ...prev, [selectedField]: { desc: payload.description, type: payload.dataType, mandatory: payload.isMandatory } }));
+      setFieldDatabase(prev => ({ ...prev, [selectedField]: { desc: payload.description, type: payload.dataType, mandatory: payload.isMandatory, length: payload.length } }));
       setIsModalOpen(false);
     } catch (error: any) { alert(error.message); } finally { setIsSavingMetadata(false); }
+  };
+
+  const downloadDictionary = (folderId: string) => {
+    const folder = folders.find(f => f.id === folderId);
+    if (!folder) return;
+    const folderReqs = requests.filter(r => r.folderId === folderId);
+    generateFolderPDF(folder, folderReqs, fieldDatabase);
   };
 
   const extractFieldsFromObj = (obj: any): string[] => {
@@ -115,89 +122,6 @@ export default function Dashboard() {
       }
     });
     return Array.from(new Set(fields));
-  };
-
-  const generateFolderPDF = (folderId: string) => {
-    const folder = folders.find(f => f.id === folderId);
-    if (!folder) return;
-    const folderReqs = requests.filter(r => r.folderId === folderId);
-    
-    const doc = new jsPDF();
-    doc.setFontSize(22); doc.setTextColor(242, 101, 34); doc.text("Diccionario de Datos", 14, 30);
-    doc.setFontSize(16); doc.setTextColor(40, 40, 40); doc.text(`Proyecto: ${folder.name}`, 14, 40);
-    doc.setFontSize(11); doc.setTextColor(100, 100, 100); doc.text(`Generado el: ${new Date().toLocaleDateString()}`, 14, 48);
-
-    let startY = 60;
-
-    folderReqs.forEach((req) => {
-      if (startY > 250) { doc.addPage(); startY = 20; }
-      doc.setFontSize(14); doc.setTextColor(40, 40, 40); doc.text(`Módulo: ${req.name}`, 14, startY); startY += 8;
-
-      // ENTRADA
-      let inFields: string[] = [];
-      try { if (req.body) inFields = extractFieldsFromObj(JSON.parse(req.body)); } catch(e){}
-      
-      if (inFields.length > 0) {
-        doc.setFontSize(11); doc.text("Parámetros de Entrada", 14, startY); startY += 5;
-        const tableBody = inFields.map(f => {
-          const meta = fieldDatabase[f] || fieldDatabase[f.split('.').pop() || ''];
-          return [f, meta?.type || 'Alfanumérico', meta?.mandatory ? 'Sí' : 'No', meta?.desc || 'Sin documentar'];
-        });
-        autoTable(doc, { startY, head: [['Campo', 'Tipo', 'Requerido', 'Descripción']], body: tableBody, headStyles: { fillColor: [242, 101, 34] }, styles: { fontSize: 9 } });
-        startY = (doc as any).lastAutoTable.finalY + 10;
-      }
-
-      // SALIDA
-      let outFields: string[] = [];
-      try { if (req.response?.body && !req.response.error) outFields = extractFieldsFromObj(req.response.body); } catch(e){}
-      
-      if (outFields.length > 0) {
-        if (startY > 250) { doc.addPage(); startY = 20; }
-        doc.setFontSize(11); doc.text("Parámetros de Salida", 14, startY); startY += 5;
-        const tableBody = outFields.map(f => {
-          const meta = fieldDatabase[f] || fieldDatabase[f.split('.').pop() || ''];
-          return [f, meta?.type || 'Alfanumérico', meta?.desc || 'Sin documentar'];
-        });
-        autoTable(doc, { startY, head: [['Campo', 'Tipo', 'Descripción']], body: tableBody, headStyles: { fillColor: [44, 62, 80] }, styles: { fontSize: 9 } });
-        startY = (doc as any).lastAutoTable.finalY + 15;
-      }
-    });
-
-    // EVIDENCIAS
-    doc.addPage(); startY = 20;
-    doc.setFontSize(22); doc.setTextColor(242, 101, 34); doc.text("Evidencias de Ejecución", 14, startY); startY += 15;
-
-    folderReqs.forEach((req) => {
-      if (startY > 250) { doc.addPage(); startY = 20; }
-      doc.setFontSize(14); doc.setTextColor(40, 40, 40); doc.text(`Petición: ${req.name}`, 14, startY); startY += 6;
-      doc.setFontSize(10); doc.setTextColor(100, 100, 100); doc.text(`${req.method} ${req.url}`, 14, startY); startY += 10;
-
-      // Evidencia Entrada
-      if (req.body) {
-        doc.setFontSize(11); doc.setTextColor(242, 101, 34); doc.text("Payload de Entrada (Request):", 14, startY); startY += 6;
-        let bodyTxt = req.body;
-        try { bodyTxt = JSON.stringify(JSON.parse(req.body), null, 2); } catch(e){}
-        const splitText = doc.splitTextToSize(bodyTxt, 180);
-        doc.setFont("courier"); doc.setFontSize(8); doc.setTextColor(60, 60, 60);
-        const textHeight = splitText.length * 3.5;
-        if (startY + textHeight > 280) { doc.addPage(); startY = 20; }
-        doc.text(splitText, 14, startY); startY += textHeight + 8;
-      }
-
-      // Evidencia Salida
-      if (req.response && !req.response.error) {
-        if (startY > 260) { doc.addPage(); startY = 20; }
-        doc.setFont("helvetica"); doc.setFontSize(11); doc.setTextColor(44, 62, 80); doc.text(`Payload de Salida (Response - ${req.response.status}):`, 14, startY); startY += 6;
-        let respTxt = JSON.stringify(req.response.body, null, 2) || "";
-        const splitText = doc.splitTextToSize(respTxt, 180);
-        doc.setFont("courier"); doc.setFontSize(8); doc.setTextColor(60, 60, 60);
-        const textHeight = splitText.length * 3.5;
-        if (startY + textHeight > 280) { doc.addPage(); startY = 20; }
-        doc.text(splitText, 14, startY); startY += textHeight + 15;
-      }
-    });
-
-    doc.save(`Diccionario_${folder.name.replace(/\s+/g, '_')}.pdf`);
   };
 
   const notifyChat = async (folderId: string) => {
@@ -250,9 +174,10 @@ export default function Dashboard() {
             </div>
             <form onSubmit={saveMetadata} className="p-6 space-y-4">
               <div><label className="text-xs font-bold text-slate-400">CAMPO</label><div className="mt-1 bg-[#1C1C1C] px-3 py-2 rounded text-[#FF6C37] font-mono">{selectedField}</div></div>
-              <div><label className="text-xs font-bold text-slate-400">DESCRIPCIÓN</label><input name="desc" type="text" required defaultValue={fieldDatabase[selectedField] ? fieldDatabase[selectedField].desc : fieldDatabase[selectedField.split('.').pop() || '']?.desc || ""} className="mt-1 w-full bg-[#1C1C1C] px-3 py-2 border border-[#3A3A3A] rounded text-white outline-none focus:border-[#FF6C37]" /></div>
+              <div><label className="text-xs font-bold text-slate-400">DESCRIPCIÓN</label><input name="desc" type="text" defaultValue={fieldDatabase[selectedField] ? fieldDatabase[selectedField].desc : fieldDatabase[selectedField.split('.').pop() || '']?.desc || ""} className="mt-1 w-full bg-[#1C1C1C] px-3 py-2 border border-[#3A3A3A] rounded text-white outline-none focus:border-[#FF6C37]" /></div>
               <div className="flex gap-4">
                 <div className="flex-1"><label className="text-xs font-bold text-slate-400">TIPO DE DATO</label><select name="type" defaultValue={fieldDatabase[selectedField]?.type || "Alfanumérico"} className="mt-1 w-full bg-[#1C1C1C] px-3 py-2 border border-[#3A3A3A] rounded text-white outline-none"><option>Alfanumérico</option><option>Numérico</option><option>Booleano</option></select></div>
+                <div className="flex-1"><label className="text-xs font-bold text-slate-400">LONGITUD</label><input name="length" type="text" placeholder="Ej: 5, 10, 20..." defaultValue={fieldDatabase[selectedField]?.length || fieldDatabase[selectedField.split('.').pop() || '']?.length || ""} className="mt-1 w-full bg-[#1C1C1C] px-3 py-2 border border-[#3A3A3A] rounded text-white outline-none focus:border-[#FF6C37]" /></div>
                 <div className="flex flex-col justify-center pt-5"><label className="flex items-center gap-2 cursor-pointer"><input name="mandatory" type="checkbox" defaultChecked={fieldDatabase[selectedField] ? fieldDatabase[selectedField].mandatory : true} className="w-4 h-4 accent-[#FF6C37]" /><span className="text-sm font-medium">Requerido</span></label></div>
               </div>
               <div className="pt-4"><button type="submit" disabled={isSavingMetadata} className="w-full bg-[#FF6C37] hover:bg-[#E55B2B] text-white font-bold py-2.5 rounded">{isSavingMetadata ? 'Guardando...' : 'Guardar'}</button></div>
@@ -287,7 +212,7 @@ export default function Dashboard() {
               {activeFolderId === f.id && (
                 <div className="mt-2 flex flex-col gap-1 px-2 border-l-2 border-[#3A3A3A] ml-2 pl-2">
                   <button onClick={() => notifyChat(f.id)} disabled={isNotifying} className="text-[10px] font-bold text-[#007fd4] hover:text-[#3399ff] text-left">↗ Enviar Colección a Chat</button>
-                  <button onClick={() => generateFolderPDF(f.id)} className="text-[10px] font-bold text-[#FF6C37] hover:text-[#ff8f66] text-left">↓ Descargar Diccionario y Evidencia</button>
+                  <button onClick={() => downloadDictionary(f.id)} className="text-[10px] font-bold text-[#FF6C37] hover:text-[#ff8f66] text-left">↓ Descargar Diccionario y Evidencia</button>
                 </div>
               )}
             </div>
