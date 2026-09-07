@@ -36,6 +36,9 @@ export default function Dashboard() {
   const [isSavingMetadata, setIsSavingMetadata] = useState(false);
   const [isNotifying, setIsNotifying] = useState(false);
 
+  const [isExportModalOpen, setIsExportModalOpen] = useState(false);
+  const [exportFolderId, setExportFolderId] = useState<string | null>(null);
+
   useEffect(() => {
     fetch("/api/metadata").then(res => res.json()).then(data => {
       if (!data.error) setFieldDatabase(data);
@@ -106,10 +109,27 @@ export default function Dashboard() {
   };
 
   const downloadDictionary = (folderId: string) => {
-    const folder = folders.find(f => f.id === folderId);
+    setExportFolderId(folderId);
+    setIsExportModalOpen(true);
+  };
+
+  const exportFolderPDF = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    if (!exportFolderId) return;
+    const folder = folders.find(f => f.id === exportFolderId);
     if (!folder) return;
-    const folderReqs = requests.filter(r => r.folderId === folderId);
-    generateFolderPDF(folder, folderReqs, fieldDatabase);
+    const folderReqs = requests.filter(r => r.folderId === exportFolderId);
+    
+    const formData = new FormData(e.currentTarget);
+    const exportOptions = {
+      clientName: formData.get("clientName") as string || "Banco Plaza",
+      reqNumber: formData.get("reqNumber") as string || "",
+      qaUrl: formData.get("qaUrl") as string || "",
+      prodUrl: formData.get("prodUrl") as string || ""
+    };
+    
+    generateFolderPDF(folder, folderReqs, fieldDatabase, exportOptions);
+    setIsExportModalOpen(false);
   };
 
   const extractFieldsFromObj = (obj: any): string[] => {
@@ -180,7 +200,26 @@ export default function Dashboard() {
                 <div className="flex-1"><label className="text-xs font-bold text-slate-400">LONGITUD</label><input name="length" type="text" placeholder="Ej: 5, 10, 20..." defaultValue={fieldDatabase[selectedField]?.length || fieldDatabase[selectedField.split('.').pop() || '']?.length || ""} className="mt-1 w-full bg-[#1C1C1C] px-3 py-2 border border-[#3A3A3A] rounded text-white outline-none focus:border-[#FF6C37]" /></div>
                 <div className="flex flex-col justify-center pt-5"><label className="flex items-center gap-2 cursor-pointer"><input name="mandatory" type="checkbox" defaultChecked={fieldDatabase[selectedField] ? fieldDatabase[selectedField].mandatory : true} className="w-4 h-4 accent-[#FF6C37]" /><span className="text-sm font-medium">Requerido</span></label></div>
               </div>
+              <div><label className="text-xs font-bold text-slate-400">VALORES DE NEGOCIO</label><input name="businessValue" type="text" placeholder="Ej: Aplica para BDC..." defaultValue={fieldDatabase[selectedField]?.businessValue || fieldDatabase[selectedField.split('.').pop() || '']?.businessValue || ""} className="mt-1 w-full bg-[#1C1C1C] px-3 py-2 border border-[#3A3A3A] rounded text-white outline-none focus:border-[#FF6C37]" /></div>
               <div className="pt-4"><button type="submit" disabled={isSavingMetadata} className="w-full bg-[#FF6C37] hover:bg-[#E55B2B] text-white font-bold py-2.5 rounded">{isSavingMetadata ? 'Guardando...' : 'Guardar'}</button></div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {isExportModalOpen && (
+        <div className="absolute inset-0 bg-black/60 z-50 flex items-center justify-center backdrop-blur-sm">
+          <div className="bg-[#2B2B2B] rounded-lg shadow-2xl w-full max-w-md overflow-hidden border border-[#3A3A3A]">
+            <div className="bg-[#1C1C1C] px-6 py-4 flex justify-between items-center border-b border-[#3A3A3A]">
+              <h3 className="text-white font-semibold">Opciones de Exportación PDF</h3>
+              <button onClick={() => setIsExportModalOpen(false)} className="text-slate-400 hover:text-white">✕</button>
+            </div>
+            <form onSubmit={exportFolderPDF} className="p-6 space-y-4">
+              <div><label className="text-xs font-bold text-slate-400">NOMBRE DEL CLIENTE</label><input name="clientName" type="text" placeholder="Ej: Banco Plaza" defaultValue="Banco Plaza" required className="mt-1 w-full bg-[#1C1C1C] px-3 py-2 border border-[#3A3A3A] rounded text-white outline-none focus:border-[#FF6C37]" /></div>
+              <div><label className="text-xs font-bold text-slate-400">NÚMERO DE REQUERIMIENTO</label><input name="reqNumber" type="text" placeholder="Ej: REQ-2026-001" className="mt-1 w-full bg-[#1C1C1C] px-3 py-2 border border-[#3A3A3A] rounded text-white outline-none focus:border-[#FF6C37]" /></div>
+              <div><label className="text-xs font-bold text-slate-400">BASE URL - CALIDAD (QA)</label><input name="qaUrl" type="url" placeholder="Ej: http://qa.api.com" className="mt-1 w-full bg-[#1C1C1C] px-3 py-2 border border-[#3A3A3A] rounded text-white outline-none focus:border-[#FF6C37]" /></div>
+              <div><label className="text-xs font-bold text-slate-400">BASE URL - PRODUCCIÓN</label><input name="prodUrl" type="url" placeholder="Ej: http://prod.api.com" className="mt-1 w-full bg-[#1C1C1C] px-3 py-2 border border-[#3A3A3A] rounded text-white outline-none focus:border-[#FF6C37]" /></div>
+              <div className="pt-4"><button type="submit" className="w-full bg-[#FF6C37] hover:bg-[#E55B2B] text-white font-bold py-2.5 rounded">Generar Diccionario</button></div>
             </form>
           </div>
         </div>

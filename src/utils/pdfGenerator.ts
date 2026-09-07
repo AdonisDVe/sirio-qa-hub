@@ -1,6 +1,7 @@
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { headerImage } from './headerBase64';
+import { logoNovumideasBase64, logoClienteBase64 } from './logosBase64';
 
 type Folder = { id: string; name: string; };
 type RequestItem = {
@@ -25,31 +26,52 @@ const extractFieldsFromObj = (obj: any): string[] => {
   return Array.from(new Set(fields));
 };
 
-const drawPageHeader = (doc: any, folderName: string) => {
+const getReplacedUrl = (devUrl: string, newBaseUrl: string) => {
+  if (!newBaseUrl) return '';
+  try {
+    const url = new URL(devUrl);
+    // ensure newBaseUrl doesn't end with slash if pathname starts with slash
+    const base = newBaseUrl.endsWith('/') ? newBaseUrl.slice(0, -1) : newBaseUrl;
+    const path = url.pathname.startsWith('/') ? url.pathname : '/' + url.pathname;
+    return base + path + url.search;
+  } catch(e) {
+    return newBaseUrl;
+  }
+};
+
+const drawPageHeader = (doc: any, folderName: string, clientName: string) => {
   autoTable(doc, {
     startY: 15,
     margin: { left: 14, right: 14 },
-    body: [
-      [
-        { content: 'NOVUMIDEAS', rowSpan: 2, styles: { halign: 'center', valign: 'middle', fontStyle: 'bold', textColor: ORANGE, fontSize: 12 } },
-        { content: 'Nombre del Proyecto\n' + folderName, styles: { cellPadding: 2, fontSize: 8 } },
-        { content: 'CLIENTE', rowSpan: 2, styles: { halign: 'center', valign: 'middle', fontStyle: 'bold', textColor: [0, 100, 0] } }
-      ],
-      [
-        { content: 'Nombre del Cliente\nCliente Genérico', styles: { cellPadding: 2, fontSize: 8 } }
-      ]
-    ],
+    head: [['', { content: folderName, styles: { halign: 'center', fontStyle: 'bold' } }, { content: clientName, styles: { halign: 'center', fontStyle: 'bold' } }]],
+    body: [['', '', '']],
     theme: 'grid',
-    styles: { lineColor: [220, 220, 220], lineWidth: 0.5, textColor: 0 },
+    styles: { cellPadding: 4, fontSize: 10, lineColor: [200, 200, 200], lineWidth: 0.1, textColor: 0, minCellHeight: 18 },
     columnStyles: {
-      0: { cellWidth: 40 },
-      2: { cellWidth: 40 }
+      0: { cellWidth: 50 },
+      1: { cellWidth: 'auto' },
+      2: { cellWidth: 50 }
+    },
+    didDrawCell: (data: any) => {
+      // Add logos in the first and last columns of the header
+      if (data.section === 'head' && data.row.index === 0) {
+        if (data.column.index === 0 && logoNovumideasBase64) {
+          try {
+            doc.addImage(logoNovumideasBase64, 'PNG', data.cell.x + 2, data.cell.y + 2, data.cell.width - 4, data.cell.height - 4);
+          } catch(e){}
+        }
+        if (data.column.index === 2 && logoClienteBase64) {
+          try {
+            doc.addImage(logoClienteBase64, 'PNG', data.cell.x + 2, data.cell.y + 2, data.cell.width - 4, data.cell.height - 4);
+          } catch(e){}
+        }
+      }
     }
   });
   return (doc as any).lastAutoTable.finalY;
 };
 
-export const generateFolderPDF = (folder: Folder, folderReqs: RequestItem[], fieldDatabase: Record<string, any>) => {
+export const generateFolderPDF = (folder: Folder, folderReqs: RequestItem[], fieldDatabase: Record<string, any>, exportOptions: any) => {
   const doc = new jsPDF();
   const pageWidth = doc.internal.pageSize.getWidth();
   const pageHeight = doc.internal.pageSize.getHeight();
@@ -90,7 +112,7 @@ export const generateFolderPDF = (folder: Folder, folderReqs: RequestItem[], fie
 
   // Hoja Control Documento (Pagina 2)
   doc.addPage();
-  let startY = drawPageHeader(doc, folder.name);
+  let startY = drawPageHeader(doc, folder.name, exportOptions.clientName);
 
   doc.setFillColor(ORANGE[0], ORANGE[1], ORANGE[2]);
   doc.rect(14, startY, pageWidth - 28, 6, 'F');
@@ -102,7 +124,7 @@ export const generateFolderPDF = (folder: Folder, folderReqs: RequestItem[], fie
 
   autoTable(doc, {
     startY,
-    body: [['Requerimiento', `REQ-${Math.floor(Math.random()*1000)}`]],
+    body: [['Requerimiento', exportOptions.reqNumber || '']],
     theme: 'grid',
     styles: { cellPadding: 2, fontSize: 9, lineColor: [220, 220, 220], lineWidth: 0.1, textColor: 0 }
   });
@@ -133,7 +155,7 @@ export const generateFolderPDF = (folder: Folder, folderReqs: RequestItem[], fie
   // Iterar peticiones (Paginas 3+)
   folderReqs.forEach((req, index) => {
     doc.addPage();
-    startY = drawPageHeader(doc, folder.name) + 2;
+    startY = drawPageHeader(doc, folder.name, exportOptions.clientName) + 2;
 
     // Título Servicio
     doc.setFillColor(ORANGE[0], ORANGE[1], ORANGE[2]);
@@ -157,8 +179,8 @@ export const generateFolderPDF = (folder: Folder, folderReqs: RequestItem[], fie
       head: [[{ content: 'APIs:', colSpan: 2, styles: { halign: 'center', fontStyle: 'bold', fillColor: [255, 255, 255], textColor: 0 } }]],
       body: [
         [{ content: 'Desarrollo', styles: { fillColor: [220, 220, 220], fontStyle: 'bold' } }, req.url],
-        [{ content: 'Calidad', styles: { fillColor: [220, 220, 220], fontStyle: 'bold' } }, ''],
-        [{ content: 'Producción', styles: { fillColor: [220, 220, 220], fontStyle: 'bold' } }, '']
+        [{ content: 'Calidad', styles: { fillColor: [220, 220, 220], fontStyle: 'bold' } }, getReplacedUrl(req.url, exportOptions.qaUrl)],
+        [{ content: 'Producción', styles: { fillColor: [220, 220, 220], fontStyle: 'bold' } }, getReplacedUrl(req.url, exportOptions.prodUrl)]
       ],
       theme: 'grid',
       styles: { fontSize: 9, cellPadding: 2, lineColor: 0, lineWidth: 0.5, textColor: 0 },
@@ -173,7 +195,7 @@ export const generateFolderPDF = (folder: Folder, folderReqs: RequestItem[], fie
     // Check if we need to paginate
     if (startY > pageHeight - 60) {
       doc.addPage();
-      startY = drawPageHeader(doc, folder.name) + 5;
+      startY = drawPageHeader(doc, folder.name, exportOptions.clientName) + 5;
     }
 
     const inTableBody = inFields.map((f, i) => {
@@ -211,7 +233,7 @@ export const generateFolderPDF = (folder: Folder, folderReqs: RequestItem[], fie
     
     if (startY > pageHeight - 60) {
         doc.addPage();
-        startY = drawPageHeader(doc, folder.name) + 5;
+        startY = drawPageHeader(doc, folder.name, exportOptions.clientName) + 5;
     }
 
     const outTableBody = outFields.map((f, i) => {
@@ -246,7 +268,7 @@ export const generateFolderPDF = (folder: Folder, folderReqs: RequestItem[], fie
     // EVIDENCIA / FORMATO JSON
     if (startY > pageHeight - 80) {
         doc.addPage();
-        startY = drawPageHeader(doc, folder.name) + 5;
+        startY = drawPageHeader(doc, folder.name, exportOptions.clientName) + 5;
     }
     
     doc.setTextColor(0, 0, 0);
@@ -274,7 +296,7 @@ export const generateFolderPDF = (folder: Folder, folderReqs: RequestItem[], fie
     if (req.response && !req.response.error) {
       if (startY > pageHeight - 60) {
           doc.addPage();
-          startY = drawPageHeader(doc, folder.name) + 15;
+          startY = drawPageHeader(doc, folder.name, exportOptions.clientName) + 15;
       }
       doc.setFont('helvetica', 'bold');
       doc.setFontSize(9);
