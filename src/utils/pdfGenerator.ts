@@ -44,7 +44,7 @@ const drawPageHeader = (doc: any, folderName: string, clientName: string) => {
     startY: 15,
     margin: { left: 14, right: 14 },
     head: [['', { content: folderName, styles: { halign: 'center', fontStyle: 'bold' } }, { content: clientName, styles: { halign: 'center', fontStyle: 'bold' } }]],
-    body: [['', '', '']],
+    body: [],
     theme: 'grid',
     headStyles: { fillColor: [255, 255, 255], textColor: 0, fontStyle: 'bold' },
     styles: { cellPadding: 4, fontSize: 10, lineColor: [200, 200, 200], lineWidth: 0.1, textColor: 0, minCellHeight: 18 },
